@@ -1,7 +1,7 @@
 {
-  "name": "lexdao_app_install",
+  "name": "agent_redemptions_install",
   "version": "0.1.0",
-  "description": "adds a new voting & dot voting instance, rewires the permissions",
+  "description": "adds a new agent & redemptions instance",
   "license": "MIT",
   "repository": "",
   "main": "dist/index.js",
