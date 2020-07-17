@@ -12,19 +12,19 @@ We have a video walkthrough of the script here:
 
 Install the aragonCLI, you can find an instalation [guide here](https://forum.aragon.org/t/aragon-cli-setup-guide/1934)
 
-- Download the repo
+Download the repo
 
 `git clone https://github.com/AraStuff/redemptions-install-script.git`
 
-- Navigate to the root directory.
+Navigate to the root directory.
 
 `npm i`
 
-- configure your DAOs addresses in
+configure your DAOs addresses in
 
 `./src/rinkeby.js`
 
-- run the script
+run the script
 
 `node ./src/rinkeby.js`
 
