@@ -6,7 +6,7 @@ This script installs the [redemptions app](https://github.com/1Hive/redemptions-
 
 We have a video walkthrough of the script here:
 
-> YouTube video embed goes here.
+![isyoutube](https://youtu.be/3zzsQaKcl3k)
 
 ## Running the script
 
