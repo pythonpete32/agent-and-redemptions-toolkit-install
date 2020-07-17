@@ -9,21 +9,23 @@ const provider = ethers.getDefaultProvider('rinkeby');
 const BN = utils.bigNumberify;
 const env = 'rinkeby';
 
+
 // DAO addresses
 const dao = '0x2C4f3fa8Da1843EEaa1e56Eba505b5aA335fb5EA';
 const acl = '0xfecab8b3885d7b17bc2f7c09b4b5080ba5fd6357';
-const agent = '0x970708b722b75c9ffa6a3817f51b27eb033b9d1c';
 const tokenManager = '0xc68be21fc6f9cd41ea97e74e8845edea520f39c4';
 const voting = '0x395e1eb7285e786a18d63ada9aeef9dfacb3e2cd';
-const daoShopToken = '0x20431b540f52237e857e6b0a9e5d07b33c3dea8c';
+const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
 
 
-
 // new apps
+const agentAppId = '0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a';
+const agentBase = '0xd3bbC93Dbc98128fAC514Be911e285102B931b5e';
+let agent;
+
 const redemptionsAppId = '0x743bd419d5c9061290b181b19e114f36e9cc9ddb42b4e54fc811edb22eb85e9d';
 const redemptionsBase = '0xe47d2A5D3319E30D1078DB181966707d8a58dE98';
-
 let redemptions;
 
 
@@ -32,6 +34,7 @@ const newAppInstanceSignature = 'newAppInstance(bytes32,address,bytes,bool)';
 const createPermissionSignature = 'createPermission(address,address,bytes32,address)';
 const grantPermissionSignature = 'grantPermission(address,address,bytes32)';
 const redemptionsInitSignature = 'initialize(address,address,address[])';
+const agentInitSignature = 'initialize(TBD, TBD, TBD)'; // HOW/WHERE DO WE GET THiS INFO?
 
 // functions for counterfactual addresses
 async function buildNonceForAddress(_address, _index, _provider) {
@@ -47,22 +50,45 @@ async function calculateNewProxyAddress(_daoAddress, _nonce) {
     return contractAddress;
 }
 
+// first tx
 async function firstTx() {
     // counterfactual addresses
-    const nonce1 = await buildNonceForAddress(dao, 0, provider);
+    const nonce1 = await buildNonceForAddress(dao, 1, provider);
     const newAddress1 = await calculateNewProxyAddress(dao, nonce1);
-    redemptions = newAddress1;
+    agent = newAddress1;
 
+    const nonce2 = await buildNonceForAddress(dao, 0, provider);
+    const newAddress2 = await calculateNewProxyAddress(dao, nonce2);
+    redemptions = newAddress2;
 
     // app initialisation payloads
+    const agentInitPayload = await encodeActCall(agentInitSignature, [
+        TBD,
+        TBD,
+        TBD
+    ])
     const redemptionsInitPayload = await encodeActCall(redemptionsInitSignature, [
         agent,
         tokenManager,
-        [daoShopToken]
+        [ETH_ADDRESS]
     ]);
 
     // package first transaction
     const calldatum = await Promise.all([
+        // Agent Stuff
+        encodeActCall(newAppInstanceSignature, [
+            agentAppId,
+            agentBase,
+            agentInitPayload,
+            true,
+        ]),
+        encodeActCall(createPermissionSignature, [
+            redemptions,
+            keccak256('TRANSFER_ROLE'),
+            voting,
+        ])
+
+        // Redemptions Stuff
         encodeActCall(newAppInstanceSignature, [
             redemptionsAppId,
             redemptionsBase,
@@ -105,7 +131,7 @@ async function firstTx() {
             calldata: calldatum[0],
         },
         {
-            to: acl,
+            to: dao,
             calldata: calldatum[1],
         },
         {
@@ -120,6 +146,10 @@ async function firstTx() {
             to: acl,
             calldata: calldatum[4],
         },
+        {
+            to: acl,
+            calldata: calldatum[5],
+        },
     ];
     const script = encodeCallScript(actions);
 
@@ -130,7 +160,7 @@ async function firstTx() {
         [
             script,
             `
-            this is something
+            installing agent and redemptions
             `,
         ],
         () => {},
