@@ -2,11 +2,17 @@
 
 This script installs the [redemptions app](https://github.com/1Hive/redemptions-app) into an Aragon DAO on Rinkeby.
 
+<br>
+
 ## Overview
 
 We have a video walkthrough of the script here:
 
-![isyoutube](https://youtu.be/3zzsQaKcl3k)
+
+
+[![Watch the video](https://i.imgur.com/3I4KqFv.png)](https://www.youtube.com/watch?v=3zzsQaKcl3k)
+
+<br>
 
 ## Running the script
 
@@ -17,6 +23,8 @@ Navigate to the root directory.
 `npm i`
 
 `node ./src/rinkeby.js`
+
+<br>
 
 ## Help
 
