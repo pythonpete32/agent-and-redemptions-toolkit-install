@@ -2,29 +2,38 @@
 
 This script installs the [redemptions app](https://github.com/1Hive/redemptions-app) into an Aragon DAO on Rinkeby.
 
-<br>
-
 ## Overview
 
 We have a video walkthrough of the script here:
 
-
-
 [![Watch the video](https://i.imgur.com/3I4KqFv.png)](https://www.youtube.com/watch?v=3zzsQaKcl3k)
-
-<br>
 
 ## Running the script
 
-Download the repo.
+Install the aragonCLI, you can find an instalation [guide here](https://forum.aragon.org/t/aragon-cli-setup-guide/1934)
 
-Navigate to the root directory.
+- Download the repo
+
+`git clone https://github.com/AraStuff/redemptions-install-script.git`
+
+- Navigate to the root directory.
 
 `npm i`
 
+- configure your DAOs addresses in
+
+`./src/rinkeby.js`
+
+- run the script
+
 `node ./src/rinkeby.js`
 
-<br>
+## finding appId and app base
+the appId and appBase are different for rinkeby and mainnet. to find them use the following commands
+
+- redemptionsAppId: `aragon apm info redemptions.aragonpm.eth --env aragon:rinkeby | grep appId`
+- redemptionsBase: `aragon apm info redemptions.aragonpm.eth --env aragon:rinkeby | grep contractAddres`
+
 
 ## Help
 
