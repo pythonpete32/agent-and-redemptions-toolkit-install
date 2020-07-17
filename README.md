@@ -1,10 +1,10 @@
-# Redemptions Install Script
+# Agent + Redemptions Install Script
 
-This script installs the [redemptions app](https://github.com/1Hive/redemptions-app) into an Aragon DAO on Rinkeby.
+This script installs an [agent](https://github.com/aragon/aragon-apps/blob/master/apps/agent) and [redemptions](https://github.com/1Hive/redemptions-app) app into an Aragon DAO on Rinkeby.
 
 ## Overview
 
-We have a video walkthrough of the script here:
+We have a video walkthrough of a similar script here:
 
 [![Watch the video](https://i.imgur.com/3I4KqFv.png)](https://www.youtube.com/watch?v=3zzsQaKcl3k)
 
