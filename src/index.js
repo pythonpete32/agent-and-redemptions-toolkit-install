@@ -32,9 +32,10 @@ let redemptions;
 // signatures
 const newAppInstanceSignature = 'newAppInstance(bytes32,address,bytes,bool)';
 const createPermissionSignature = 'createPermission(address,address,bytes32,address)';
-const grantPermissionSignature = 'grantPermission(address,address,bytes32)';
-const redemptionsInitSignature = 'initialize(address,address,address[])';
-const agentInitSignature = 'initialize(TBD, TBD, TBD)'; // HOW/WHERE DO WE GET THiS INFO?
+const grantPermissionSignature = 'grantPermission(address,address,bytes32)'; 
+const redemptionsInitSignature = 'initialize(address,address,address[])'; // find in `Redemptions.sol`
+const agentInitSignature = 'initialize()'; 
+
 
 // functions for counterfactual addresses
 async function buildNonceForAddress(_address, _index, _provider) {
@@ -50,23 +51,18 @@ async function calculateNewProxyAddress(_daoAddress, _nonce) {
     return contractAddress;
 }
 
-// first tx
-async function firstTx() {
+
+async function transaction() {
     // counterfactual addresses
     const nonce1 = await buildNonceForAddress(dao, 1, provider);
-    const newAddress1 = await calculateNewProxyAddress(dao, nonce1);
-    agent = newAddress1;
+    agent = await calculateNewProxyAddress(dao, nonce1);
+  
 
     const nonce2 = await buildNonceForAddress(dao, 0, provider);
-    const newAddress2 = await calculateNewProxyAddress(dao, nonce2);
-    redemptions = newAddress2;
+    redemptions = await calculateNewProxyAddress(dao, nonce2);
 
     // app initialisation payloads
-    const agentInitPayload = await encodeActCall(agentInitSignature, [
-        TBD,
-        TBD,
-        TBD
-    ])
+    const agentInitPayload = await encodeActCall(agentInitSignature, [])
     const redemptionsInitPayload = await encodeActCall(redemptionsInitSignature, [
         agent,
         tokenManager,
@@ -82,18 +78,17 @@ async function firstTx() {
             agentInitPayload,
             true,
         ]),
-        encodeActCall(createPermissionSignature, [
-            redemptions,
-            keccak256('TRANSFER_ROLE'),
-            voting,
-        ])
-
-        // Redemptions Stuff
         encodeActCall(newAppInstanceSignature, [
             redemptionsAppId,
             redemptionsBase,
             redemptionsInitPayload,
             true,
+        ]),
+        encodeActCall(createPermissionSignature, [
+            redemptions,
+            agent,
+            keccak256('TRANSFER_ROLE'),
+            voting,
         ]),
         encodeActCall(createPermissionSignature, [
             ANY_ADDRESS,
@@ -112,11 +107,6 @@ async function firstTx() {
             redemptions,
             keccak256('REMOVE_TOKEN_ROLE'),
             voting,
-        ]),
-        encodeActCall(grantPermissionSignature, [
-            redemptions,
-            agent,
-            keccak256('TRANSFER_ROLE'),
         ]),
         encodeActCall(grantPermissionSignature, [
             redemptions,
@@ -150,6 +140,10 @@ async function firstTx() {
             to: acl,
             calldata: calldatum[5],
         },
+        {
+            to: acl,
+            calldata: calldatum[6],
+        },
     ];
     const script = encodeCallScript(actions);
 
@@ -170,7 +164,7 @@ async function firstTx() {
 
 const main = async () => {
     console.log('Generating vote');
-    await firstTx();
+    await transaction();
 };
 
 main()
