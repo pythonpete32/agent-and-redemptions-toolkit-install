@@ -1,40 +1,42 @@
 const {encodeCallScript} = require('@aragon/test-helpers/evmScript');
 const {encodeActCall, execAppMethod} = require('mathew-aragon-toolkit');
+const ora = require('ora');
+const Listr = require('listr');
 const ethers = require('ethers');
 const utils = require('ethers/utils');
 const {keccak256} = require('web3-utils');
-
+const chalk = require('chalk');
 const {RLP} = utils;
-const provider = ethers.getDefaultProvider('rinkeby');
-const BN = utils.bigNumberify;
-const env = 'rinkeby';
 
+const {dao,acl,tokenManager,voting,ANY_ADDRESS, environment} = require('./settings.json')
+const provider = ethers.getDefaultProvider(environment);
 
-// DAO addresses
-const dao = '0x2C4f3fa8Da1843EEaa1e56Eba505b5aA335fb5EA';
-const acl = '0xfecab8b3885d7b17bc2f7c09b4b5080ba5fd6357';
-const tokenManager = '0xc68be21fc6f9cd41ea97e74e8845edea520f39c4';
-const voting = '0x395e1eb7285e786a18d63ada9aeef9dfacb3e2cd';
-const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
-const ANY_ADDRESS = '0xffffffffffffffffffffffffffffffffffffffff';
+const url = chalk.green
+const warning = chalk.bold.red;
+const install = chalk.cyanBright;
 
 
 // new apps
 const agentAppId = '0x9ac98dc5f995bf0211ed589ef022719d1487e5cb2bab505676f0d084c07cf89a';
-const agentBase = '0xd3bbC93Dbc98128fAC514Be911e285102B931b5e';
+const agentBase = (environment === 'rinkeby') 
+    ? '0xd3bbC93Dbc98128fAC514Be911e285102B931b5e'
+    : '0x3A93C17FC82CC33420d1809dDA9Fb715cc89dd37'
 let agent;
 
 const redemptionsAppId = '0x743bd419d5c9061290b181b19e114f36e9cc9ddb42b4e54fc811edb22eb85e9d';
-const redemptionsBase = '0xe47d2A5D3319E30D1078DB181966707d8a58dE98';
+const redemptionsBase = (environment === 'rinkeby')
+    ? '0xe47d2A5D3319E30D1078DB181966707d8a58dE98'
+    : '0x5B1f69304651b3e7a9789D27e84f1F7336c356e8'
 let redemptions;
-
+const ETH_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 // signatures
 const newAppInstanceSignature = 'newAppInstance(bytes32,address,bytes,bool)';
 const createPermissionSignature = 'createPermission(address,address,bytes32,address)';
-const grantPermissionSignature = 'grantPermission(address,address,bytes32)';
-const redemptionsInitSignature = 'initialize(address,address,address[])';
-const agentInitSignature = 'initialize(TBD, TBD, TBD)'; // HOW/WHERE DO WE GET THiS INFO?
+const grantPermissionSignature = 'grantPermission(address,address,bytes32)'; 
+const redemptionsInitSignature = 'initialize(address,address,address[])'; 
+const agentInitSignature = 'initialize()'; 
+
 
 // functions for counterfactual addresses
 async function buildNonceForAddress(_address, _index, _provider) {
@@ -50,30 +52,18 @@ async function calculateNewProxyAddress(_daoAddress, _nonce) {
     return contractAddress;
 }
 
-// first tx
-async function firstTx() {
-    // counterfactual addresses
-    const nonce1 = await buildNonceForAddress(dao, 1, provider);
-    const newAddress1 = await calculateNewProxyAddress(dao, nonce1);
-    agent = newAddress1;
 
-    const nonce2 = await buildNonceForAddress(dao, 0, provider);
-    const newAddress2 = await calculateNewProxyAddress(dao, nonce2);
-    redemptions = newAddress2;
+async function tx1() {
+    // counterfactual addresses
+    const nonce1 = await buildNonceForAddress(dao, 0, provider);
+    agent = await calculateNewProxyAddress(dao, nonce1);
+  
 
     // app initialisation payloads
-    const agentInitPayload = await encodeActCall(agentInitSignature, [
-        TBD,
-        TBD,
-        TBD
-    ])
-    const redemptionsInitPayload = await encodeActCall(redemptionsInitSignature, [
-        agent,
-        tokenManager,
-        [ETH_ADDRESS]
-    ]);
+    const agentInitPayload = await encodeActCall(agentInitSignature, [])
 
-    // package first transaction
+
+    // package first tx1
     const calldatum = await Promise.all([
         // Agent Stuff
         encodeActCall(newAppInstanceSignature, [
@@ -83,12 +73,52 @@ async function firstTx() {
             true,
         ]),
         encodeActCall(createPermissionSignature, [
-            redemptions,
+            voting,
+            agent,
             keccak256('TRANSFER_ROLE'),
             voting,
         ])
+    ]);
 
-        // Redemptions Stuff
+    const actions = [
+        {
+            to: dao,
+            calldata: calldatum[0],
+        },
+        {
+            to: acl,
+            calldata: calldatum[1],
+        }
+    ];
+
+    const script = encodeCallScript(actions);
+
+    await execAppMethod(
+        dao,
+        voting,
+        'newVote',
+        [
+            script,
+            `
+            installing agent
+            `,
+        ],
+        () => {},
+        environment,
+    );
+}
+
+async function tx2() {
+    const nonce2 = await buildNonceForAddress(dao, 1, provider);
+    redemptions = await calculateNewProxyAddress(dao, nonce2);
+
+    const redemptionsInitPayload = await encodeActCall(redemptionsInitSignature, [
+        agent,
+        tokenManager,
+        [ETH_ADDRESS]
+    ]);
+
+    const calldatum = await Promise.all([
         encodeActCall(newAppInstanceSignature, [
             redemptionsAppId,
             redemptionsBase,
@@ -115,15 +145,10 @@ async function firstTx() {
         ]),
         encodeActCall(grantPermissionSignature, [
             redemptions,
-            agent,
-            keccak256('TRANSFER_ROLE'),
-        ]),
-        encodeActCall(grantPermissionSignature, [
-            redemptions,
             tokenManager,
             keccak256('BURN_ROLE'),
         ])
-    ]);
+    ])
 
     const actions = [
         {
@@ -131,7 +156,7 @@ async function firstTx() {
             calldata: calldatum[0],
         },
         {
-            to: dao,
+            to: acl,
             calldata: calldatum[1],
         },
         {
@@ -146,11 +171,8 @@ async function firstTx() {
             to: acl,
             calldata: calldatum[4],
         },
-        {
-            to: acl,
-            calldata: calldatum[5],
-        },
     ];
+
     const script = encodeCallScript(actions);
 
     await execAppMethod(
@@ -160,22 +182,41 @@ async function firstTx() {
         [
             script,
             `
-            installing agent and redemptions
+            installing redemptions
             `,
         ],
         () => {},
-        env,
+        environment,
     );
+
 }
 
 const main = async () => {
-    console.log('Generating vote');
-    await firstTx();
+
+    const tasks = new Listr([
+        {
+            title: chalk.cyan('Installing ') + chalk.cyan.bold('Agent'),
+            task: () => tx1()
+        },
+        {
+            title: chalk.cyan('Installing ') + chalk.cyan.bold('Redemptions'),
+            task: () => tx2()
+        }
+    ])
+    await tasks.run()
+        .then(() =>{
+            console.log(`\n--------------------------------------------------------------------------------------------------------------------------`)
+            console.log('Vote at ' + url(`http://${environment}.aragon.org/#/${dao}/${voting}`))
+            console.log('You ' + warning('MUST WAIT ') + 'for the first transaction to pass before voting on the second')
+            console.log('--------------------------------------------------------------------------------------------------------------------------')
+        })
+        .catch(err => {
+            console.error(err);
+        });
 };
 
 main()
     .then(() => {
-        console.log('Script finished.');
         process.exit();
     })
     .catch((e) => {
